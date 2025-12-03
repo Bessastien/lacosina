@@ -14,6 +14,14 @@
         <input type="email" class="form-control" id="auteur" name="auteur" value="<?php echo htmlspecialchars($recette['auteur']); ?>" required>
     </div>
     <div class="form-group">
+        <label for="type_plat">Type de plat</label>
+        <select class="form-control" id="type_plat" name="type_plat" required>
+            <option value="Entrée" <?php echo (isset($recette['type_plat']) && $recette['type_plat'] === 'Entrée') ? 'selected' : ''; ?>>Entrée</option>
+            <option value="Plat" <?php echo (!isset($recette['type_plat']) || $recette['type_plat'] === 'Plat') ? 'selected' : ''; ?>>Plat</option>
+            <option value="Dessert" <?php echo (isset($recette['type_plat']) && $recette['type_plat'] === 'Dessert') ? 'selected' : ''; ?>>Dessert</option>
+        </select>
+    </div>
+    <div class="form-group">
         <label for="image">Image de la recette</label>
         <?php if ($recette['image']): ?>
             <div class="mb-2">

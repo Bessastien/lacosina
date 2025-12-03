@@ -1,0 +1,21 @@
+{
+    "name": "lacosina/recettes",
+    "description": "Projet La Cosina - Site de recettes traditionnelles",
+    "type": "project",
+    "require": {
+        "php": ">=7.4",
+        "monolog/monolog": "^2.9"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\Models\\": "models/",
+            "App\\Controllers\\": "controllers/"
+        }
+    },
+    "authors": [
+        {
+            "name": "La Cosina Team"
+        }
+    ]
+}
+

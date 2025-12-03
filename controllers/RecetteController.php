@@ -11,8 +11,8 @@ class RecetteController
 
     public function ajouter()
     {
-        if (!isset($_SESSION['user_isAdmin']) || !$_SESSION['user_isAdmin']) {
-            header('Location: index.php?c=Recette&a=lister');
+        if (!isset($_SESSION['user_id'])) {
+            header('Location: index.php?c=User&a=connexion');
             exit;
         }
         include 'views/Recette/ajout.php';
@@ -20,15 +20,16 @@ class RecetteController
 
     public function enregistrer()
     {
-        if (!isset($_SESSION['user_isAdmin']) || !$_SESSION['user_isAdmin']) {
-            header('Location: index.php?c=Recette&a=lister');
+        if (!isset($_SESSION['user_id'])) {
+            header('Location: index.php?c=User&a=connexion');
             exit;
         }
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $titre = $_POST['titre'];
-            $description = $_POST['description'];
-            $auteur = $_POST['auteur'];
+            $titre = htmlspecialchars($_POST['titre']);
+            $description = htmlspecialchars($_POST['description']);
+            $auteur = htmlspecialchars($_POST['auteur']);
+            $type_plat = isset($_POST['type_plat']) ? htmlspecialchars($_POST['type_plat']) : 'Plat';
             $id = isset($_POST['id']) ? $_POST['id'] : null;
 
             $imagePath = null;
@@ -45,16 +46,23 @@ class RecetteController
             $this->recette->setTitre($titre);
             $this->recette->setDescription($description);
             $this->recette->setAuteur($auteur);
+            $this->recette->setTypePlat($type_plat);
 
             if ($imagePath) {
                 $this->recette->setImage($imagePath);
             }
 
             if ($id) {
-                $this->recette->update($id, $titre, $description, $auteur, $imagePath ? $imagePath : null);
+                $this->recette->update($id, $titre, $description, $auteur, $imagePath ? $imagePath : null, $type_plat);
             } else {
+                // Les recettes des non-admins doivent être approuvées
+                $isApproved = isset($_SESSION['user_isAdmin']) && $_SESSION['user_isAdmin'] ? 1 : 0;
+                $this->recette->setIsApproved($isApproved);
                 $this->recette->setDateCreation(date('Y-m-d H:i:s'));
                 $this->recette->insert();
+
+                // Log l'action avec Monolog
+                $this->logAction('Nouvelle recette ajoutée : ' . $titre . ' par ' . $_SESSION['user_identifiant']);
             }
 
             include 'views/Recette/enregistrer.php';
@@ -63,7 +71,15 @@ class RecetteController
 
     public function lister()
     {
-        $recettes = $this->recette->getAll();
+        $type_plat = isset($_GET['type_plat']) ? $_GET['type_plat'] : null;
+        $recettes = $this->recette->getAll($type_plat, true);
+
+        // Si c'est une requête AJAX, retourner JSON
+        if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
+            header('Content-Type: application/json');
+            echo json_encode($recettes);
+            exit;
+        }
 
         $favoriController = new FavoriController();
         $favorisIds = [];
@@ -124,6 +140,56 @@ class RecetteController
             $_SESSION['message'] = ['success' => 'Recette supprimée avec succès'];
             header('Location: index.php?c=Recette&a=lister');
             exit;
+        }
+    }
+
+    public function recherche()
+    {
+        if (isset($_GET['q'])) {
+            $query = htmlspecialchars($_GET['q']);
+            $recettes = $this->recette->search($query);
+
+            header('Content-Type: application/json');
+            echo json_encode($recettes);
+            exit;
+        }
+    }
+
+    public function pendingApproval()
+    {
+        if (!isset($_SESSION['user_isAdmin']) || !$_SESSION['user_isAdmin']) {
+            header('Location: index.php?c=Recette&a=lister');
+            exit;
+        }
+
+        $recettes = $this->recette->getPendingApproval();
+        include 'views/Recette/pending_approval.php';
+    }
+
+    public function approveRecette()
+    {
+        if (!isset($_SESSION['user_isAdmin']) || !$_SESSION['user_isAdmin']) {
+            header('Location: index.php?c=Recette&a=lister');
+            exit;
+        }
+
+        if (isset($_GET['id'])) {
+            $this->recette->approve($_GET['id']);
+            $this->logAction('Recette #' . $_GET['id'] . ' approuvée par ' . $_SESSION['user_identifiant']);
+            $_SESSION['message'] = ['success' => 'Recette approuvée avec succès'];
+            header('Location: index.php?c=Recette&a=pendingApproval');
+            exit;
+        }
+    }
+
+    private function logAction($message)
+    {
+        // Charger Monolog si disponible
+        if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
+            require_once __DIR__ . '/../vendor/autoload.php';
+            $log = new \Monolog\Logger('lacosina');
+            $log->pushHandler(new \Monolog\Handler\StreamHandler(__DIR__ . '/../logs/app.log', \Monolog\Logger::INFO));
+            $log->info($message);
         }
     }
 }

@@ -51,12 +51,28 @@ class UserController
                 $_SESSION['id'] = $user['id'];
                 $_SESSION['identifiant'] = $user['identifiant'];
                 $_SESSION['isAdmin'] = $user['isAdmin'];
+
+                // Log la connexion
+                $this->logAction('Connexion réussie pour l\'utilisateur : ' . $identifiant);
+
                 header('Location: index.php?c=Recette&a=lister');
                 exit;
             } else {
+                $this->logAction('Tentative de connexion échouée pour l\'identifiant : ' . $identifiant);
                 $erreur = "Identifiant ou mot de passe incorrect";
                 include 'views/User/connexion.php';
             }
+        }
+    }
+
+    private function logAction($message)
+    {
+        // Charger Monolog si disponible
+        if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
+            require_once __DIR__ . '/../vendor/autoload.php';
+            $log = new \Monolog\Logger('lacosina');
+            $log->pushHandler(new \Monolog\Handler\StreamHandler(__DIR__ . '/../logs/app.log', \Monolog\Logger::INFO));
+            $log->info($message);
         }
     }
 

@@ -18,6 +18,11 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
+                <!-- Barre de recherche -->
+                <div class="d-flex mx-auto" style="width: 400px;">
+                    <input type="text" id="search-input" class="form-control" placeholder="Rechercher une recette...">
+                    <div id="search-results" class="position-absolute bg-white border rounded shadow-sm" style="top: 100%; z-index: 1000; width: 400px; max-height: 400px; overflow-y: auto; display: none;"></div>
+                </div>
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
                         <a class="nav-link" href="index.php?c=Recette&a=accueil">Accueil</a>
@@ -25,9 +30,33 @@
                     <li class="nav-item">
                         <a class="nav-link" href="index.php?c=Recette&a=lister">Recettes</a>
                     </li>
-                    <?php if (isset($_SESSION['user_id']) && $_SESSION['user_isAdmin']): ?>
+                    <?php if (isset($_SESSION['user_id'])): ?>
                     <li class="nav-item">
-                        <a class="nav-link" href="index.php?c=Recette&a=ajouter">Ajouter une recette</a>
+                        <a class="nav-link" href="index.php?c=Recette&a=ajouter">Proposer une recette</a>
+                    </li>
+                    <?php endif; ?>
+                    <?php if (isset($_SESSION['user_id']) && $_SESSION['user_isAdmin']):
+                        global $pdo;
+                        $recetteModel = new Recette($pdo);
+                        $commentaireModel = new Commentaire($pdo);
+                        $pendingRecettes = $recetteModel->countPendingApproval();
+                        $pendingComments = $commentaireModel->countPendingApproval();
+                    ?>
+                    <li class="nav-item">
+                        <a class="nav-link" href="index.php?c=Recette&a=pendingApproval">
+                            Recettes à valider
+                            <?php if ($pendingRecettes > 0): ?>
+                                <span class="badge bg-danger"><?php echo $pendingRecettes; ?></span>
+                            <?php endif; ?>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="index.php?c=Commentaire&a=pendingApproval">
+                            Commentaires à valider
+                            <?php if ($pendingComments > 0): ?>
+                                <span class="badge bg-danger"><?php echo $pendingComments; ?></span>
+                            <?php endif; ?>
+                        </a>
                     </li>
                     <?php endif; ?>
                     <li class="nav-item">
@@ -73,4 +102,60 @@
             <?php endforeach; ?>
             <?php unset($_SESSION['message']); ?>
         <?php endif; ?>
+
+    <script>
+    // Recherche dynamique
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('search-input');
+        const searchResults = document.getElementById('search-results');
+        let searchTimeout;
+
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                clearTimeout(searchTimeout);
+                const query = this.value.trim();
+
+                if (query.length < 2) {
+                    searchResults.style.display = 'none';
+                    return;
+                }
+
+                searchTimeout = setTimeout(() => {
+                    fetch(`?c=Recette&a=recherche&q=${encodeURIComponent(query)}`)
+                        .then(response => response.json())
+                        .then(recettes => {
+                            if (recettes.length > 0) {
+                                searchResults.innerHTML = recettes.map(recette => `
+                                    <a href="?c=Recette&a=detail&id=${recette.id}" class="d-block p-2 text-decoration-none text-dark border-bottom hover-bg-light">
+                                        <div class="d-flex align-items-center">
+                                            <img src="${recette.image || 'images/no_image.png'}" alt="${recette.titre}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 5px;" class="me-2">
+                                            <div>
+                                                <strong>${recette.titre}</strong>
+                                                <br><small class="text-muted">${recette.type_plat || 'Plat'}</small>
+                                            </div>
+                                        </div>
+                                    </a>
+                                `).join('');
+                                searchResults.style.display = 'block';
+                            } else {
+                                searchResults.innerHTML = '<div class="p-3 text-muted">Aucune recette trouvée</div>';
+                                searchResults.style.display = 'block';
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Erreur lors de la recherche:', error);
+                            searchResults.style.display = 'none';
+                        });
+                }, 300);
+            });
+
+            // Fermer les résultats quand on clique ailleurs
+            document.addEventListener('click', function(e) {
+                if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+                    searchResults.style.display = 'none';
+                }
+            });
+        }
+    });
+    </script>
 

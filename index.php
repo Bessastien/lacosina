@@ -1,19 +1,28 @@
 <?php
 session_start();
 
+    // Charger l'autoloader Composer si disponible
+if (file_exists(__DIR__ . '/vendor/autoload.php')) {
+    require_once __DIR__ . '/vendor/autoload.php';
+}
+
+// Connexion à la base de données
 require_once 'models/connectDb.php';
 
-require_once 'models/Recette.php';
-require_once 'models/Contact.php';
-require_once 'models/User.php';
-require_once 'models/Favori.php';
-require_once 'models/Commentaire.php';
+// Chargement manuel des classes si autoloader non disponible
+if (!file_exists(__DIR__ . '/vendor/autoload.php')) {
+    require_once 'models/Recette.php';
+    require_once 'models/Contact.php';
+    require_once 'models/User.php';
+    require_once 'models/Favori.php';
+    require_once 'models/Commentaire.php';
 
-require_once 'controllers/RecetteController.php';
-require_once 'controllers/ContactController.php';
-require_once 'controllers/UserController.php';
-require_once 'controllers/FavoriController.php';
-require_once 'controllers/CommentaireController.php';
+    require_once 'controllers/RecetteController.php';
+    require_once 'controllers/ContactController.php';
+    require_once 'controllers/UserController.php';
+    require_once 'controllers/FavoriController.php';
+    require_once 'controllers/CommentaireController.php';
+}
 
 if (!isset($_GET['x'])) {
     include 'views/header.php';

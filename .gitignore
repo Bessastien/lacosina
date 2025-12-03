@@ -1,0 +1,37 @@
+# Dépendances Composer
+/vendor/
+composer.lock
+
+# Logs
+/logs/*.log
+/logs/*.txt
+
+# Fichiers IDE
+/.idea/
+/.vscode/
+*.swp
+*.swo
+*~
+
+# Fichiers système
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Fichiers de configuration personnels
+/models/connectDb.php
+
+# Fichiers temporaires
+*.tmp
+*.bak
+*.cache
+
+# Fichiers d'installation
+*.exe
+*.msi
+*.dmg
+
+# Images uploadées (optionnel - à adapter selon besoin)
+# /images/*
+# !/images/no_image.png
+
